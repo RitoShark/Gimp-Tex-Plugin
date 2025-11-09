@@ -72,3 +72,5 @@ SUPPORTED FORMATS:
 
 For more information or support, check the plugin's log file:
 %USERPROFILE%\gimp_tex_plugin.log
+
+Credits ofc to Ltmao and tarngaina https://github.com/tarngaina/LtMAO
