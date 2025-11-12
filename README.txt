@@ -30,16 +30,13 @@
 
   ✓ Full GIMP 3.0 support
   ✓ Auto-close error dialogs (workaround for GIMP 3.0 bug)
-  ✓ Multi-language support (24+ languages)
-  ✓ Improved stability and performance
-  ✓ Better export functionality
 
 
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ 📦 INSTALLATION                                                              │
 └──────────────────────────────────────────────────────────────────────────────┘
 
-  1. Run "GIMP_3_TEX_Plugin_Setup.exe"
+  1. Run "GIMP_3_TEX_Plugin_Setup.exe" or  "GIMP_2_TEX_Plugin_Setup.exe" depending on ur gimp version
   
   2. Follow the wizard:
      • Installer will auto-detect your GIMP 3.0 installation
@@ -191,3 +188,4 @@
 ║              For support, check the log files or GitHub issues              ║
 ║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
+
