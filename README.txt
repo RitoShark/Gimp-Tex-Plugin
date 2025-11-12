@@ -124,7 +124,7 @@ Error closer log: %USERPROFILE%\gimp_error_closer.log
 CREDITS:
 --------
 
-Original plugin by LtMAO Team
+Original code for tex support by
 GitHub: https://github.com/tarngaina/LtMAO
 
 GIMP 3.0 version with auto-close feature
@@ -143,3 +143,4 @@ v3.0 (2024)
 v1.0 (Original)
 - GIMP 2.10 support
 - Basic load/save functionality
+
