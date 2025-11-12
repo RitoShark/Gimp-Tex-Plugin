@@ -82,7 +82,7 @@
   • The error appears even though files load successfully
   • Works in 24+ languages
   • Runs silently in the background
-  • Only closes TEX-related errors (safe!)
+  • closes every error window so dont get confused
 
   How to enable/disable:
   • Enabled by default during installation (checkbox)
@@ -188,4 +188,5 @@
 ║              For support, check the log files or GitHub issues              ║
 ║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
+
 
