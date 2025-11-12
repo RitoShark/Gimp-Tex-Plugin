@@ -1,146 +1,193 @@
-========================================
-GIMP 3.0 TEX Plugin - Installation Guide
-========================================
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║                    ⚠️  IMPORTANT - GIMP 3.0 BUG WARNING  ⚠️                  ║
+║                                                                              ║
+║  When opening .tex files, you will see an error message:                    ║
+║  "Opening [file] failed: League of Legends TEX plug-in could not open image"║
+║                                                                              ║
+║  ➜ THIS IS A GIMP 3.0 WINDOWS BUG, NOT A PLUGIN PROBLEM!                    ║
+║  ➜ The file DOES load successfully - just click OK                          ║
+║  ➜ This bug only exists in GIMP 3.0 (not in GIMP 2.10)                      ║
+║                                                                              ║
+║  Solution: Install the "Error Dialog Auto-Closer" feature (included)        ║
+║  It will automatically close this annoying error dialog for you.            ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
 
-This plugin allows GIMP 3.0 to open and save League of Legends .tex texture files.
 
-NEW IN VERSION 3.0:
--------------------
-✓ Full GIMP 3.0 support
-✓ Auto-close error dialogs (optional feature)
-✓ Multi-language support (24+ languages)
-✓ Improved stability and performance
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║                      🎨 GIMP 3.0 TEX PLUGIN v3.0 🎨                          ║
+║                                                                              ║
+║              Load & Export League of Legends .tex Texture Files             ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
 
-INSTALLATION:
--------------
 
-1. Double-click "GIMP_3_TEX_Plugin_Setup.exe"
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ ✨ NEW IN VERSION 3.0                                                        │
+└──────────────────────────────────────────────────────────────────────────────┘
 
-2. Follow the installation wizard:
-   - Click "Next" on the welcome screen
-   - The installer will automatically find your GIMP 3.0 installation
-   - Select additional features:
-     • Error Dialog Auto-Closer (Recommended) - Automatically closes the 
-       annoying error dialog that appears due to a GIMP 3.0 Windows bug
-   - Click "Install" to begin installation
-   - Wait for installation to complete
-   - Click "Finish"
+  ✓ Full GIMP 3.0 support
+  ✓ Auto-close error dialogs (workaround for GIMP 3.0 bug)
+  ✓ Multi-language support (24+ languages)
+  ✓ Improved stability and performance
+  ✓ Better export functionality
 
-3. Restart GIMP (close and reopen if it's running)
 
-4. Done! The plugin is now installed and ready to use.
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 📦 INSTALLATION                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
 
-USAGE:
-------
+  1. Run "GIMP_3_TEX_Plugin_Setup.exe"
+  
+  2. Follow the wizard:
+     • Installer will auto-detect your GIMP 3.0 installation
+     • Check "Install Error Dialog Auto-Closer" (Recommended)
+     • Click Install
+  
+  3. Restart GIMP if it's running
+  
+  4. Done! 🎉
 
-Opening .tex files:
-- File > Open > select your .tex file
-- Or drag-and-drop .tex files into GIMP
 
-Exporting as .tex:
-- File > Export As > type filename with .tex extension
-- Or select "League of Legends TEX" from file type dropdown
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 🎮 USAGE                                                                     │
+└──────────────────────────────────────────────────────────────────────────────┘
 
-FEATURES:
----------
+  📂 Opening .tex files:
+     • File > Open > select your .tex file
+     • Or drag & drop .tex files into GIMP
 
-✓ Load DXT1, DXT5, and BGRA8 texture formats
-✓ Export images as TEX files
-✓ Support for mipmapped textures
-✓ Auto-close error dialogs (optional)
-✓ Works in all languages
+  💾 Exporting as .tex:
+     • File > Export As > type filename.tex
+     • Or select "League of Legends TEX" from file type dropdown
 
-ERROR DIALOG AUTO-CLOSER:
--------------------------
 
-What it does:
-- Automatically closes the "GIMP Message" error dialog that appears when 
-  loading TEX files
-- This is a workaround for a GIMP 3.0 Windows bug where the error appears 
-  even though the file loads successfully
-- Works in 24+ languages
-- Runs silently in the background
-- Only closes TEX-related error dialogs (safe for other GIMP operations)
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ ⚡ FEATURES                                                                  │
+└──────────────────────────────────────────────────────────────────────────────┘
 
-How to enable/disable:
-- Enabled by default during installation (checkbox)
-- To disable: Uninstall and reinstall without the checkbox
-- Or manually delete: %APPDATA%\GIMP\3.0\plug-ins\gimp_tex_plugin_3\close_gimp_tex_error.py
+  ✓ Load DXT1, DXT5, and BGRA8 texture formats
+  ✓ Export images as TEX files
+  ✓ Support for mipmapped textures
+  ✓ Auto-close error dialogs (optional)
+  ✓ Works in all languages worldwide
 
-UNINSTALLATION:
----------------
 
-1. Go to Windows Settings > Apps > Apps & features
-2. Find "GIMP 3.0 TEX Plugin" in the list
-3. Click "Uninstall"
-4. Restart GIMP
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 🛡️ ERROR DIALOG AUTO-CLOSER                                                 │
+└──────────────────────────────────────────────────────────────────────────────┘
 
-REQUIREMENTS:
--------------
+  What it does:
+  • Automatically closes the "GIMP Message" error dialog
+  • This is a workaround for a GIMP 3.0 Windows bug
+  • The error appears even though files load successfully
+  • Works in 24+ languages
+  • Runs silently in the background
+  • Only closes TEX-related errors (safe!)
 
-- GIMP 3.0 or later (includes Python - no separate installation needed!)
-- Windows 7 or later
+  How to enable/disable:
+  • Enabled by default during installation (checkbox)
+  • To disable: Delete close_gimp_tex_error.py from plugin folder
+  • Or uninstall and reinstall without the checkbox
 
-TROUBLESHOOTING:
-----------------
 
-Plugin doesn't appear after installation:
-- Make sure GIMP is completely closed and restart it
-- Check the plugin folder exists:
-  %APPDATA%\GIMP\3.0\plug-ins\gimp_tex_plugin_3\
-- Check the log file: %USERPROFILE%\gimp_tex_plugin_3.log
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 🗑️ UNINSTALLATION                                                           │
+└──────────────────────────────────────────────────────────────────────────────┘
 
-"GIMP 3.0 not found" error during installation:
-- Make sure GIMP 3.0 is installed (not GIMP 2.10)
-- For GIMP 2.10, use the old installer: GIMP_TEX_Plugin_Setup.exe
+  1. Windows Settings > Apps > Apps & features
+  2. Find "GIMP 3.0 TEX Plugin"
+  3. Click Uninstall
+  4. Restart GIMP
 
-Files won't open:
-- Make sure the .tex file is a valid League of Legends texture file
-- Check the log file: %USERPROFILE%\gimp_tex_plugin_3.log
 
-Error dialog still appears:
-- Make sure the error closer was installed (check during setup)
-- Check if it's running: %USERPROFILE%\gimp_error_closer.log
-- Restart GIMP completely
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 💻 REQUIREMENTS                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
 
-Export not working:
-- Use File > Export As (not Save)
-- Make sure to type the .tex extension manually
+  • GIMP 3.0 or later (includes Python - no separate install needed!)
+  • Windows 7 or later
 
-SUPPORTED FORMATS:
-------------------
 
-- DXT1 compressed textures
-- DXT5 compressed textures  
-- BGRA8 uncompressed textures
-- Files with or without mipmaps
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 🔧 TROUBLESHOOTING                                                           │
+└──────────────────────────────────────────────────────────────────────────────┘
 
-LOG FILES:
-----------
+  ❌ Plugin doesn't appear after installation:
+     → Make sure GIMP is completely closed and restart it
+     → Check folder exists: %APPDATA%\GIMP\3.0\plug-ins\gimp_tex_plugin_3\
+     → Check log: %USERPROFILE%\gimp_tex_plugin_3.log
 
-Main plugin log: %USERPROFILE%\gimp_tex_plugin_3.log
-Error closer log: %USERPROFILE%\gimp_error_closer.log
+  ❌ "GIMP 3.0 not found" during installation:
+     → Make sure GIMP 3.0 is installed (not GIMP 2.10)
+     → For GIMP 2.10, use: GIMP_TEX_Plugin_Setup.exe
 
-CREDITS:
---------
+  ❌ Files won't open:
+     → Make sure it's a valid League of Legends .tex file
+     → Check log: %USERPROFILE%\gimp_tex_plugin_3.log
 
-Original code for tex support by
-GitHub: https://github.com/tarngaina/LtMAO
+  ❌ Error dialog still appears:
+     → Make sure error closer was installed (check during setup)
+     → Check if running: %USERPROFILE%\gimp_error_closer.log
+     → Restart GIMP completely
 
-GIMP 3.0 version with auto-close feature
-Developed with ❤️ for the League of Legends modding community
+  ❌ Export not working:
+     → Use File > Export As (not Save)
+     → Type the .tex extension manually
 
-VERSION HISTORY:
-----------------
 
-v3.0 (2024)
-- Full GIMP 3.0 support
-- Auto-close error dialogs feature
-- Multi-language support (24+ languages)
-- Improved export functionality
-- Better error handling
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 📋 SUPPORTED FORMATS                                                         │
+└──────────────────────────────────────────────────────────────────────────────┘
 
-v1.0 (Original)
-- GIMP 2.10 support
-- Basic load/save functionality
+  ✓ DXT1 compressed textures
+  ✓ DXT5 compressed textures  
+  ✓ BGRA8 uncompressed textures
+  ✓ Files with or without mipmaps
 
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 📝 LOG FILES                                                                 │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  Main plugin log:    %USERPROFILE%\gimp_tex_plugin_3.log
+  Error closer log:   %USERPROFILE%\gimp_error_closer.log
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 👥 CREDITS                                                                   │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  Original tex logic by LtMAO
+  GitHub: https://github.com/tarngaina/LtMAO
+
+  GIMP 2.0 version
+  GIMP 3.0 version with auto-close feature
+  Developed with ❤️ for the League of Legends modding community
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 📜 VERSION HISTORY                                                           │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  v3.0 (2024)
+  • Full GIMP 3.0 support
+  • Auto-close error dialogs feature
+  • Multi-language support (24+ languages)
+  • Improved export functionality
+  • Better error handling
+
+  v1.0 (Original)
+  • GIMP 2.10 support
+  • Basic load/save functionality
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║                    Thank you for using GIMP TEX Plugin! 🎉                   ║
+║                                                                              ║
+║              For support, check the log files or GitHub issues              ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
