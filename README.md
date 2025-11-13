@@ -1,6 +1,4 @@
-Got it 😄 — here’s a **cleaner, professional Markdown version** with minimal emojis (kept only where they improve readability, not flair):
 
----
 
 # GIMP 3.0 TEX Plugin v3.0
 
@@ -185,3 +183,4 @@ Got it 😄 — here’s a **cleaner, professional Markdown version** with minim
 ---
 
 Would you like me to format this as a **GitHub-ready README.md** (with proper code fences, section dividers, and link formatting)? I can make it copy-paste–ready for your repo.
+
