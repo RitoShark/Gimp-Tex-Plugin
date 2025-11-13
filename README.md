@@ -1,4 +1,5 @@
-
+# https://github.com/RitoShark/TexThumbnailProvider 
+## INSTALL GUISAIS TEX THUMBNAIL PROVIDER FOR THE FILE EXPLORER
 
 # GIMP 3.0 TEX Plugin v3.0
 
@@ -183,4 +184,5 @@
 ---
 
 Would you like me to format this as a **GitHub-ready README.md** (with proper code fences, section dividers, and link formatting)? I can make it copy-paste–ready for your repo.
+
 
