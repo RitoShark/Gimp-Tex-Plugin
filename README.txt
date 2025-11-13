@@ -143,7 +143,6 @@
   v3.0 (2024)
   • Full GIMP 3.0 support
   • Auto-close error dialogs feature
-  • Multi-language support (24+ languages)
   • Improved export functionality
   • Better error handling
 
@@ -159,4 +158,5 @@
 ║              For support, check the log files or GitHub issues              ║
 ║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
+
 
