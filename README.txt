@@ -1,35 +1,10 @@
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                                                                              ║
-║                    ⚠️  IMPORTANT - GIMP 3.0 BUG WARNING  ⚠️                  ║
-║                                                                              ║
-║  When opening .tex files, you will see an error message:                    ║
-║  "Opening [file] failed: League of Legends TEX plug-in could not open image"║
-║                                                                              ║
-║  ➜ THIS IS A GIMP 3.0 WINDOWS BUG, NOT A PLUGIN PROBLEM!                    ║
-║  ➜ The file DOES load successfully - just click OK                          ║
-║  ➜ This bug only exists in GIMP 3.0 (not in GIMP 2.10)                      ║
-║                                                                              ║
-║  Solution: Install the "Error Dialog Auto-Closer" feature (included)        ║
-║  It will automatically close this annoying error dialog for you.            ║
-║                                                                              ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-
-
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                                                                              ║
 ║                      🎨 GIMP 3.0 TEX PLUGIN v3.0 🎨                          ║
-║                                                                              ║
 ║              Load & Export League of Legends .tex Texture Files             ║
-║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
-
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ ✨ NEW IN VERSION 3.0                                                        │
-└──────────────────────────────────────────────────────────────────────────────┘
-
-  ✓ Full GIMP 3.0 support
-  ✓ Auto-close error dialogs (workaround for GIMP 3.0 bug)
+⚠️  GIMP 3.0 BUG: Error dialogs appear when opening .tex files (files still load)
+    Solution: Auto-closer feature included - closes errors automatically
 
 
 ┌──────────────────────────────────────────────────────────────────────────────┐
@@ -69,7 +44,6 @@
   ✓ Export images as TEX files
   ✓ Support for mipmapped textures
   ✓ Auto-close error dialogs (optional)
-  ✓ Works in all languages worldwide
 
 
 ┌──────────────────────────────────────────────────────────────────────────────┐
@@ -80,10 +54,7 @@
   • Automatically closes the "GIMP Message" error dialog
   • This is a workaround for a GIMP 3.0 Windows bug
   • The error appears even though files load successfully
-  • Works in 24+ languages
-  • Runs silently in the background
-  • closes every error window so dont get confused
-
+  
   How to enable/disable:
   • Enabled by default during installation (checkbox)
   • To disable: Delete close_gimp_tex_error.py from plugin folder
@@ -188,5 +159,4 @@
 ║              For support, check the log files or GitHub issues              ║
 ║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
-
 
