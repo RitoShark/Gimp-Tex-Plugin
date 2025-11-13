@@ -1,3 +1,6 @@
+# https://github.com/RitoShark/TexThumbnailProvider
+# INSTALL TEX PREVIEW FOR FILE EXPLORER HERE by guisai
+
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                      🎨 GIMP 3.0 TEX PLUGIN v3.0 🎨                          ║
 ║              Load & Export League of Legends .tex Texture Files             ║
@@ -158,5 +161,6 @@
 ║              For support, check the log files or GitHub issues              ║
 ║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
+
 
 
