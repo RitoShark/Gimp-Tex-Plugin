@@ -1,4 +1,4 @@
-# https://github.com/RitoShark/TexThumbnailProvider
+## https://github.com/RitoShark/TexThumbnailProvider
 # INSTALL TEX PREVIEW FOR FILE EXPLORER HERE by guisai
 
 ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -161,6 +161,7 @@
 ║              For support, check the log files or GitHub issues              ║
 ║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
+
 
 
 
