@@ -118,6 +118,14 @@ def _init_dll():
         ]
         _dll.decompress_bgra8.restype = None
 
+        # void alpha_bleed(uint8_t *rgba, int width, int height)  [in place]
+        # Optional: only present in DLLs built after the edge-extend fix.
+        try:
+            _dll.alpha_bleed.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_int]
+            _dll.alpha_bleed.restype = None
+        except AttributeError:
+            pass
+
         _log("DLL loaded successfully - using FAST native compression")
         return _dll
     except Exception as e:
@@ -158,6 +166,18 @@ def native_decompress(data, width, height, fmt):
     else:
         return None
     return output.raw
+
+
+def alpha_bleed(rgba, width, height):
+    """Edge-extend transparent pixels' RGB from nearest opaque neighbors (kills
+    the white fringe on cutout textures). Native if the DLL exports it, else None
+    so callers fall back to the pure-Python implementation in tex_core."""
+    dll = _init_dll()
+    if dll is not None and hasattr(dll, 'alpha_bleed'):
+        buf = ctypes.create_string_buffer(bytes(rgba), len(rgba))
+        dll.alpha_bleed(buf, width, height)
+        return buf.raw[:len(rgba)]
+    return None
 
 
 def rgba_to_bgra(rgba, num_pixels):

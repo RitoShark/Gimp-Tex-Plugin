@@ -415,6 +415,12 @@ def rgba_to_tex_data(rgba, width, height, fmt, mipmaps=False, compressor=None):
 
     tex = TexFile(width, height, fmt, mipmaps)
 
+    # Edge-extend (alpha bleed) ONCE on the full-res image, before compression
+    # AND before mipmap downsampling, so neither the BC block-average nor the
+    # Lanczos downsample mixes transparent pixels' (often white) RGB into the
+    # edges. This removes the white fringe around cutout/alpha-tested textures.
+    rgba = _alpha_bleed(rgba, width, height)
+
     if not mipmaps:
         tex.data = _compress_level(rgba, width, height, fmt, compressor)
     else:
@@ -426,8 +432,75 @@ def rgba_to_tex_data(rgba, width, height, fmt, mipmaps=False, compressor=None):
     return tex
 
 
+def _alpha_bleed(rgba, width, height):
+    """Edge-extend (alpha bleed / dilation): fill the RGB of transparent pixels
+    with the color of the nearest opaque pixel.
+
+    Without this, fully-transparent pixels keep whatever RGB they had (often
+    white in GIMP). BC1/BC3 averages RGB across each 4x4 block — including those
+    transparent-but-white pixels — and mipmap downsampling mixes them in too, so
+    a white halo bleeds along cutout edges. Bleeding the edge color into the
+    transparent region removes the fringe; alpha is untouched.
+
+    Multi-pass flood: each pass copies color from any opaque/already-filled
+    neighbor into adjacent transparent pixels, until none remain (or it stalls).
+
+    Uses the native DLL implementation when available (fast); otherwise the pure
+    Python flood below.
+    """
+    try:
+        from dxt_compress import alpha_bleed as _native_bleed
+        native = _native_bleed(rgba, width, height)
+        if native is not None:
+            return native
+    except Exception:
+        pass
+
+    buf = bytearray(rgba)
+    # filled[i] = pixel i has valid RGB (originally opaque, or filled this run).
+    filled = bytearray(width * height)
+    any_transparent = False
+    for p in range(width * height):
+        if buf[p * 4 + 3] != 0:
+            filled[p] = 1
+        else:
+            any_transparent = True
+    if not any_transparent:
+        return bytes(buf)
+
+    neighbors = ((-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (1, -1), (-1, 1), (1, 1))
+    # Bound the passes so a fully/mostly transparent image can't loop forever.
+    max_passes = max(width, height)
+    for _ in range(max_passes):
+        newly = []
+        for y in range(height):
+            row = y * width
+            for x in range(width):
+                p = row + x
+                if filled[p]:
+                    continue
+                rs = gs = bs = cnt = 0
+                for dx, dy in neighbors:
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < width and 0 <= ny < height:
+                        np = ny * width + nx
+                        if filled[np]:
+                            o = np * 4
+                            rs += buf[o]; gs += buf[o + 1]; bs += buf[o + 2]; cnt += 1
+                if cnt:
+                    o = p * 4
+                    buf[o] = rs // cnt; buf[o + 1] = gs // cnt; buf[o + 2] = bs // cnt
+                    newly.append(p)
+        if not newly:
+            break
+        for p in newly:
+            filled[p] = 1
+    return bytes(buf)
+
+
 def _compress_level(rgba, width, height, fmt, compressor):
-    """Compress a single mip level."""
+    """Compress a single mip level. RGBA is expected to be already edge-extended
+    (see _alpha_bleed, applied once up-front in rgba_to_tex_data)."""
     if fmt == FMT_BGRA8:
         return _rgba_to_bgra(rgba, width, height)
     else:

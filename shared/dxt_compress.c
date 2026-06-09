@@ -752,3 +752,73 @@ DLL_EXPORT void downsample_lanczos3(const uint8_t *src, int src_w, int src_h,
         }
     }
 }
+
+/* --------------------------------------------------------------------------
+ * Alpha bleed / edge-extend (in place)
+ *
+ * Fills the RGB of fully-transparent pixels with the average color of nearest
+ * opaque/already-filled neighbors, via a multi-pass flood. Without this,
+ * transparent pixels keep their (often white) RGB, which BC block-averaging and
+ * mipmap downsampling smear into cutout edges -> white fringe. Alpha is left
+ * untouched. Call this on the RGBA buffer BEFORE compression / downsampling.
+ * -------------------------------------------------------------------------- */
+DLL_EXPORT void alpha_bleed(uint8_t *rgba, int width, int height) {
+    int n = width * height;
+    if (n <= 0) return;
+
+    uint8_t *filled = (uint8_t *)malloc((size_t)n);
+    if (!filled) return;
+
+    int any_transparent = 0;
+    int i;
+    for (i = 0; i < n; i++) {
+        if (rgba[i * 4 + 3] != 0) {
+            filled[i] = 1;
+        } else {
+            filled[i] = 0;
+            any_transparent = 1;
+        }
+    }
+    if (!any_transparent) { free(filled); return; }
+
+    static const int DX[8] = { -1, 1, 0, 0, -1, 1, -1, 1 };
+    static const int DY[8] = { 0, 0, -1, 1, -1, -1, 1, 1 };
+
+    int max_passes = (width > height ? width : height);
+    int *newly = (int *)malloc(sizeof(int) * (size_t)n);
+    if (!newly) { free(filled); return; }
+
+    int pass;
+    for (pass = 0; pass < max_passes; pass++) {
+        int newly_count = 0;
+        int x, y, k;
+        for (y = 0; y < height; y++) {
+            for (x = 0; x < width; x++) {
+                int p = y * width + x;
+                if (filled[p]) continue;
+                int rs = 0, gs = 0, bs = 0, cnt = 0;
+                for (k = 0; k < 8; k++) {
+                    int nx = x + DX[k], ny = y + DY[k];
+                    if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+                    int np = ny * width + nx;
+                    if (filled[np]) {
+                        int o = np * 4;
+                        rs += rgba[o]; gs += rgba[o + 1]; bs += rgba[o + 2]; cnt++;
+                    }
+                }
+                if (cnt) {
+                    int o = p * 4;
+                    rgba[o]     = (uint8_t)(rs / cnt);
+                    rgba[o + 1] = (uint8_t)(gs / cnt);
+                    rgba[o + 2] = (uint8_t)(bs / cnt);
+                    newly[newly_count++] = p;
+                }
+            }
+        }
+        if (newly_count == 0) break;
+        for (i = 0; i < newly_count; i++) filled[newly[i]] = 1;
+    }
+
+    free(newly);
+    free(filled);
+}
