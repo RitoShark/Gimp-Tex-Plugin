@@ -16,7 +16,7 @@ jobs:
         include:
           - os: windows-latest
             artifact: libdxtcompress.dll
-            cmd: cl /O2 /EHsc /LD /Fe:libdxtcompress.dll dxt_compress.c bc7_wrapper.cpp bc7enc\bc7enc.cpp bc7enc\bc7decomp.cpp
+            cmd: cl /O2 /EHsc /LD /Fe:libdxtcompress.dll dxt_compress.c bc7_wrapper.cpp bc7enc/bc7enc.cpp bc7enc/bc7decomp.cpp
           - os: ubuntu-latest
             artifact: libdxtcompress.so
             cmd: gcc -O3 -fPIC -c dxt_compress.c -o dxt_compress.o && g++ -O3 -fPIC -std=c++14 -c bc7_wrapper.cpp bc7enc/bc7enc.cpp bc7enc/bc7decomp.cpp && g++ -shared -o libdxtcompress.so dxt_compress.o bc7_wrapper.o bc7enc.o bc7decomp.o -lm
