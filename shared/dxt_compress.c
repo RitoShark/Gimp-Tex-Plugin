@@ -530,6 +530,111 @@ DLL_EXPORT void compress_bc3(const uint8_t *rgba, int width, int height,
 }
 
 /* --------------------------------------------------------------------------
+ * BC5 compression (two BC4 blocks: red, green)
+ *
+ * BC5 stores two independent 8-bit channels (R and G) as two BC4 blocks, the
+ * same interpolated-endpoint format used by the DXT5 alpha block — so we reuse
+ * encode_bc3_alpha_block() for each channel. Used for tangent-space normal maps
+ * (X in red, Y in green). 16 bytes/block, no color/alpha. Decode reconstructs
+ * the blue channel as the normal Z = sqrt(1 - x^2 - y^2) so it previews sanely.
+ * -------------------------------------------------------------------------- */
+
+DLL_EXPORT void compress_bc5(const uint8_t *rgba, int width, int height,
+                             uint8_t *output) {
+    int block_w = (width + 3) / 4;
+    int block_h = (height + 3) / 4;
+    int bx, by;
+
+    for (by = 0; by < block_h; by++) {
+        for (bx = 0; bx < block_w; bx++) {
+            uint8_t red[16], green[16];
+            int x, y;
+            int offset = (by * block_w + bx) * 16;
+
+            for (y = 0; y < 4; y++) {
+                for (x = 0; x < 4; x++) {
+                    int px = bx * 4 + x;
+                    int py = by * 4 + y;
+                    int idx = y * 4 + x;
+                    /* clamp to edge for partial blocks */
+                    int sx = px < width ? px : width - 1;
+                    int sy = py < height ? py : height - 1;
+                    int pi = (sy * width + sx) * 4;
+                    red[idx]   = rgba[pi];
+                    green[idx] = rgba[pi + 1];
+                }
+            }
+
+            encode_bc3_alpha_block(red,   output + offset);
+            encode_bc3_alpha_block(green, output + offset + 8);
+        }
+    }
+}
+
+/* Decode a single 8-byte BC4 block into 16 channel values. */
+static void decode_bc4_block(const uint8_t *block, uint8_t out[16]) {
+    uint8_t e0 = block[0], e1 = block[1];
+    uint8_t vals[8];
+    uint64_t bits = 0;
+    int i;
+
+    vals[0] = e0;
+    vals[1] = e1;
+    if (e0 > e1) {
+        for (i = 1; i < 7; i++)
+            vals[i + 1] = (uint8_t)(((7 - i) * e0 + i * e1) / 7);
+    } else {
+        for (i = 1; i < 5; i++)
+            vals[i + 1] = (uint8_t)(((5 - i) * e0 + i * e1) / 5);
+        vals[6] = 0;
+        vals[7] = 255;
+    }
+
+    for (i = 0; i < 6; i++)
+        bits |= ((uint64_t)block[2 + i]) << (i * 8);
+
+    for (i = 0; i < 16; i++)
+        out[i] = vals[(bits >> (i * 3)) & 0x7];
+}
+
+DLL_EXPORT void decompress_bc5(const uint8_t *input, int width, int height, uint8_t *rgba) {
+    int block_w = (width + 3) / 4;
+    int block_h = (height + 3) / 4;
+    int bx, by, px, py;
+
+    for (by = 0; by < block_h; by++) {
+        for (bx = 0; bx < block_w; bx++) {
+            int off = (by * block_w + bx) * 16;
+            uint8_t red[16], green[16];
+
+            decode_bc4_block(input + off, red);
+            decode_bc4_block(input + off + 8, green);
+
+            for (py = 0; py < 4; py++) {
+                for (px = 0; px < 4; px++) {
+                    int x = bx * 4 + px, y = by * 4 + py;
+                    int idx = py * 4 + px;
+                    if (x < width && y < height) {
+                        int pi = (y * width + x) * 4;
+                        /* reconstruct normal-map Z from X=red, Y=green */
+                        float nx = red[idx]   / 255.0f * 2.0f - 1.0f;
+                        float ny = green[idx] / 255.0f * 2.0f - 1.0f;
+                        float nz2 = 1.0f - nx * nx - ny * ny;
+                        float nz = nz2 > 0.0f ? (float)sqrt(nz2) : 0.0f;
+                        int b = (int)((nz * 0.5f + 0.5f) * 255.0f + 0.5f);
+                        if (b < 0) b = 0; else if (b > 255) b = 255;
+                        rgba[pi]   = red[idx];
+                        rgba[pi+1] = green[idx];
+                        rgba[pi+2] = (uint8_t)b;
+                        rgba[pi+3] = 255;
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* --------------------------------------------------------------------------
  * DXT1/BC1 decompression
  * -------------------------------------------------------------------------- */
 

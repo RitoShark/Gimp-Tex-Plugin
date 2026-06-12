@@ -16,13 +16,13 @@ jobs:
         include:
           - os: windows-latest
             artifact: libdxtcompress.dll
-            cmd: cl /O2 /LD /Fe:libdxtcompress.dll dxt_compress.c
+            cmd: cl /O2 /EHsc /LD /Fe:libdxtcompress.dll dxt_compress.c bc7_wrapper.cpp bc7enc\bc7enc.cpp bc7enc\bc7decomp.cpp
           - os: ubuntu-latest
             artifact: libdxtcompress.so
-            cmd: gcc -shared -O3 -o libdxtcompress.so dxt_compress.c -lm
+            cmd: gcc -O3 -fPIC -c dxt_compress.c -o dxt_compress.o && g++ -O3 -fPIC -std=c++14 -c bc7_wrapper.cpp bc7enc/bc7enc.cpp bc7enc/bc7decomp.cpp && g++ -shared -o libdxtcompress.so dxt_compress.o bc7_wrapper.o bc7enc.o bc7decomp.o -lm
           - os: macos-latest
             artifact: libdxtcompress.dylib
-            cmd: gcc -dynamiclib -O3 -o libdxtcompress.dylib dxt_compress.c -lm
+            cmd: clang -O3 -fPIC -c dxt_compress.c -o dxt_compress.o && clang++ -O3 -fPIC -std=c++14 -c bc7_wrapper.cpp bc7enc/bc7enc.cpp bc7enc/bc7decomp.cpp && clang++ -dynamiclib -o libdxtcompress.dylib dxt_compress.o bc7_wrapper.o bc7enc.o bc7decomp.o -lm
 
     runs-on: ${{ matrix.os }}
 
@@ -33,15 +33,38 @@ jobs:
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Build
+      - name: Build main library (libdxtcompress)
         working-directory: shared
+        shell: bash
         run: ${{ matrix.cmd }}
 
-      - name: Upload artifact
+      - name: Upload main library
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: shared/${{ matrix.artifact }}
+
+      # --- Windows-only: optional GPU BC7 accelerator (DirectXTex / DirectCompute) ---
+      - name: Install DirectXTex (vcpkg)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: vcpkg install directxtex:x64-windows
+
+      - name: Build Bc7Native.dll (Windows GPU BC7)
+        if: runner.os == 'Windows'
+        working-directory: shared
+        shell: cmd
+        # /MD is required: vcpkg's DirectXTex (x64-windows) uses the dynamic CRT,
+        # and cl defaults to /MT — a mismatch causes LNK2038. ole32 resolves the
+        # WIC factory pulled in by DirectXTexUtil.
+        run: cl /O2 /MD /EHsc /LD /I"%VCPKG_INSTALLATION_ROOT%\installed\x64-windows\include" Bc7Native.cpp /Fe:Bc7Native.dll /link "%VCPKG_INSTALLATION_ROOT%\installed\x64-windows\lib\DirectXTex.lib" d3d11.lib dxgi.lib ole32.lib uuid.lib
+
+      - name: Upload Bc7Native.dll
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bc7Native.dll
+          path: shared/Bc7Native.dll
 
   release:
     needs: build
@@ -57,9 +80,11 @@ jobs:
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
 
-      - name: Copy DLL for installer
+      - name: Copy DLLs for installer
         shell: bash
-        run: cp artifacts/libdxtcompress.dll/libdxtcompress.dll shared/libdxtcompress.dll
+        run: |
+          cp artifacts/libdxtcompress.dll/libdxtcompress.dll shared/libdxtcompress.dll
+          cp artifacts/Bc7Native.dll/Bc7Native.dll shared/Bc7Native.dll
 
       - name: Build installer
         shell: cmd
@@ -68,9 +93,9 @@ jobs:
       - name: Build release zips
         shell: bash
         run: |
-          # GIMP 3 - Windows
+          # GIMP 3 - Windows (incl. optional GPU BC7 accelerator Bc7Native.dll)
           mkdir -p gimp3_win
-          cp gimp3/gimp3_tex_plugin.py shared/tex_core.py shared/dxt_compress.py artifacts/libdxtcompress.dll/libdxtcompress.dll gimp3_win/
+          cp gimp3/gimp3_tex_plugin.py shared/tex_core.py shared/dxt_compress.py artifacts/libdxtcompress.dll/libdxtcompress.dll artifacts/Bc7Native.dll/Bc7Native.dll gimp3_win/
           powershell Compress-Archive -Path 'gimp3_win/*' -DestinationPath GIMP3_TEX_Plugin_Windows.zip
 
           # GIMP 3 - macOS
@@ -85,10 +110,10 @@ jobs:
           chmod +x gimp3_linux/gimp3_tex_plugin.py
           tar -czf GIMP3_TEX_Plugin_Linux.tar.gz -C gimp3_linux .
 
-          # GIMP 2 - Windows
+          # GIMP 2 - Windows (incl. optional GPU BC7 accelerator Bc7Native.dll)
           mkdir -p gimp2_win/gimp2_tex_libs
           cp gimp2/gimp2_tex_plugin.py gimp2_win/
-          cp shared/tex_core.py shared/dxt_compress.py artifacts/libdxtcompress.dll/libdxtcompress.dll gimp2_win/gimp2_tex_libs/
+          cp shared/tex_core.py shared/dxt_compress.py artifacts/libdxtcompress.dll/libdxtcompress.dll artifacts/Bc7Native.dll/Bc7Native.dll gimp2_win/gimp2_tex_libs/
           powershell Compress-Archive -Path 'gimp2_win/*' -DestinationPath GIMP2_TEX_Plugin_Windows.zip
 
           # GIMP 2 - macOS

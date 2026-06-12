@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 tex_core.py - League of Legends TEX format handler
 
@@ -27,14 +28,21 @@ TEX_SIGNATURE = 0x00584554
 # TEX format constants
 FMT_DXT1 = 10
 FMT_DXT5 = 12
+FMT_BC7 = 13
+FMT_BC5 = 14
 FMT_BGRA8 = 20
 
 # Block properties per format: (block_size, bytes_per_block)
 BLOCK_INFO = {
     FMT_DXT1: (4, 8),
     FMT_DXT5: (4, 16),
+    FMT_BC7: (4, 16),
+    FMT_BC5: (4, 16),
     FMT_BGRA8: (1, 4),
 }
+
+# Block-compressed formats (require dimensions divisible by 4 + a compressor).
+BLOCK_FORMATS = (FMT_DXT1, FMT_DXT5, FMT_BC7, FMT_BC5)
 
 # DDS constants
 DDS_MAGIC = 0x20534444  # "DDS "
@@ -170,6 +178,16 @@ class TexFile:
         elif self.format == FMT_DXT5:
             return _decompress_dxt5(data, w, h)
 
+        elif self.format == FMT_BC5:
+            return _decompress_bc5(data, w, h)
+
+        elif self.format == FMT_BC7:
+            # BC7 decoding has no pure-Python fallback (too complex/slow); the
+            # native DLL is required. native_decompress above handles it.
+            raise ValueError(
+                'BC7 decoding requires the native library (libdxtcompress). '
+                'It was not found or failed to load.')
+
         else:
             raise ValueError('Cannot decompress format {}'.format(self.format))
 
@@ -277,6 +295,59 @@ def _decompress_dxt5(data, width, height):
                         rgba[pi] = c[0]; rgba[pi+1] = c[1]
                         rgba[pi+2] = c[2]; rgba[pi+3] = alphas[ai]
 
+    return bytes(rgba)
+
+
+def _decode_bc4_block(data, off):
+    """Decode one 8-byte BC4 block into a list of 16 channel values."""
+    e0, e1 = data[off], data[off + 1]
+    vals = [e0, e1]
+    if e0 > e1:
+        for i in range(1, 7):
+            vals.append(((7 - i) * e0 + i * e1) // 7)
+    else:
+        for i in range(1, 5):
+            vals.append(((5 - i) * e0 + i * e1) // 5)
+        vals.append(0)
+        vals.append(255)
+    bits = 0
+    for i in range(6):
+        bits |= data[off + 2 + i] << (i * 8)
+    return [vals[(bits >> (i * 3)) & 0x7] for i in range(16)]
+
+
+def _decompress_bc5(data, width, height):
+    """Decompress BC5 (two BC4 blocks: R, G) to RGBA. Reconstructs the blue
+    channel as the normal-map Z = sqrt(1 - x^2 - y^2); alpha forced opaque."""
+    rgba = bytearray(width * height * 4)
+    block_w = (width + 3) // 4
+    block_h = (height + 3) // 4
+    for by in range(block_h):
+        for bx in range(block_w):
+            off = (by * block_w + bx) * 16
+            if off + 16 > len(data):
+                break
+            red = _decode_bc4_block(data, off)
+            green = _decode_bc4_block(data, off + 8)
+            for py in range(4):
+                for px in range(4):
+                    x = bx * 4 + px
+                    y = by * 4 + py
+                    if x < width and y < height:
+                        idx = py * 4 + px
+                        r = red[idx]
+                        g = green[idx]
+                        nx = r / 255.0 * 2.0 - 1.0
+                        ny = g / 255.0 * 2.0 - 1.0
+                        nz2 = 1.0 - nx * nx - ny * ny
+                        nz = math.sqrt(nz2) if nz2 > 0 else 0.0
+                        b = int((nz * 0.5 + 0.5) * 255.0 + 0.5)
+                        b = 0 if b < 0 else (255 if b > 255 else b)
+                        pi = (y * width + x) * 4
+                        rgba[pi] = r
+                        rgba[pi + 1] = g
+                        rgba[pi + 2] = b
+                        rgba[pi + 3] = 255
     return bytes(rgba)
 
 
@@ -403,13 +474,13 @@ def rgba_to_tex_data(rgba, width, height, fmt, mipmaps=False, compressor=None):
     Returns:
         TexFile instance ready to write
     """
-    if fmt in (FMT_DXT1, FMT_DXT5) and compressor is None:
-        raise ValueError('Compressor function required for DXT formats')
+    if fmt in BLOCK_FORMATS and compressor is None:
+        raise ValueError('Compressor function required for block-compressed formats')
 
-    if fmt in (FMT_DXT1, FMT_DXT5):
+    if fmt in BLOCK_FORMATS:
         if width % 4 != 0 or height % 4 != 0:
             raise ValueError(
-                'Dimensions must be divisible by 4 for DXT compression. '
+                'Dimensions must be divisible by 4 for block compression. '
                 'Got {}x{}, try {}x{}'.format(
                     width, height, ((width + 3) // 4) * 4, ((height + 3) // 4) * 4))
 

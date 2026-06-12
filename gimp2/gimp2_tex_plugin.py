@@ -26,7 +26,8 @@ for d in [libs_dir, plugin_dir]:
     if os.path.isdir(d) and d not in sys.path:
         sys.path.insert(0, d)
 
-from tex_core import TexFile, tex_to_temp_dds, rgba_to_tex_data, FMT_DXT1, FMT_DXT5, FMT_BGRA8
+from tex_core import (TexFile, tex_to_temp_dds, rgba_to_tex_data,
+                      FMT_DXT1, FMT_DXT5, FMT_BGRA8, FMT_BC5, FMT_BC7, BLOCK_FORMATS)
 from dxt_compress import compress_for_tex
 
 # Logging
@@ -38,8 +39,9 @@ try:
 except Exception:
     pass
 
-FORMAT_NAMES = ["DXT1 (BC1, no alpha)", "DXT5 (BC3, with alpha)", "BGRA8 (uncompressed)"]
-FORMAT_VALUES = [FMT_DXT1, FMT_DXT5, FMT_BGRA8]
+FORMAT_NAMES = ["DXT1 (BC1, no alpha)", "DXT5 (BC3, with alpha)", "BGRA8 (uncompressed)",
+                "BC7 (high quality, alpha)", "BC5 (normal maps, RG)"]
+FORMAT_VALUES = [FMT_DXT1, FMT_DXT5, FMT_BGRA8, FMT_BC7, FMT_BC5]
 METRIC_NAMES = ["Perceptual (recommended)", "Uniform"]
 
 
@@ -55,13 +57,35 @@ def _log_msg(msg):
 # Load TEX via DDS plugin
 # ============================================================================
 
+def _image_from_rgba(rgba, w, h):
+    """Build a GIMP 2 RGBA image from raw RGBA bytes (row-major, R first)."""
+    image = gimp.Image(w, h, RGB)
+    layer = gimp.Layer(image, "Background", w, h, RGBA_IMAGE, 100, NORMAL_MODE)
+    image.add_layer(layer, 0)
+    rgn = layer.get_pixel_rgn(0, 0, w, h, True, False)
+    rgn[0:w, 0:h] = bytes(rgba)
+    layer.flush()
+    layer.merge_shadow(True)
+    layer.update(0, 0, w, h)
+    return image
+
+
 def tex_load(filename, raw_filename):
-    """Load a TEX file by converting to temp DDS and using GIMP's DDS loader."""
+    """Load a TEX file. DXT1/DXT5/BGRA8 go through GIMP's native DDS loader;
+    BC5/BC7 are decoded by our own native decoders (the DDS plugin's support for
+    them varies by version)."""
     _log_msg("Loading TEX: {}".format(filename))
 
     tex = TexFile.read(filename)
     _log_msg("TEX: {}x{}, format={}, mipmaps={}".format(
         tex.width, tex.height, tex.format, tex.mipmaps))
+
+    if tex.format in (FMT_BC5, FMT_BC7):
+        _log_msg("Using built-in decompression for BC5/BC7")
+        rgba = tex.decompress_to_rgba()
+        image = _image_from_rgba(rgba, tex.width, tex.height)
+        pdb.gimp_image_set_filename(image, filename)
+        return image
 
     dds_path = tex_to_temp_dds(tex)
     _log_msg("Temp DDS: {}".format(dds_path))
@@ -270,11 +294,11 @@ def _export_tex(image, drawable, filename, fmt, dithering, perceptual, mipmaps):
     w = layer.width
     h = layer.height
 
-    if fmt in (FMT_DXT1, FMT_DXT5):
+    if fmt in BLOCK_FORMATS:
         if w % 4 != 0 or h % 4 != 0:
             pdb.gimp_image_delete(export_image)
             gimp.message(
-                "Image dimensions must be divisible by 4 for DXT compression.\n"
+                "Image dimensions must be divisible by 4 for block compression.\n"
                 "Current: {}x{}\n"
                 "Resize to: {}x{}".format(
                     w, h, ((w + 3) // 4) * 4, ((h + 3) // 4) * 4))
@@ -311,7 +335,7 @@ def register_handlers():
 register(
     "file-tex-load",
     "Load League of Legends .tex texture file",
-    "Loads .tex files via DDS conversion (DXT1/DXT5/BGRA8)",
+    "Loads .tex files (DXT1/DXT5/BC5/BC7/BGRA8)",
     "LtMAO Team", "LtMAO Team", "2025",
     "League of Legends TEX",
     None,

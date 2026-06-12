@@ -29,6 +29,8 @@ Source: "..\gimp2\gimp2_tex_plugin.py"; DestDir: "{code:GetGIMP2PluginDir}"; Fla
 Source: "..\shared\tex_core.py"; DestDir: "{code:GetGIMP2PluginDir}\gimp2_tex_libs"; Flags: ignoreversion; Check: GIMP2Found
 Source: "..\shared\dxt_compress.py"; DestDir: "{code:GetGIMP2PluginDir}\gimp2_tex_libs"; Flags: ignoreversion; Check: GIMP2Found
 Source: "..\shared\libdxtcompress.dll"; DestDir: "{code:GetGIMP2PluginDir}\gimp2_tex_libs"; Flags: ignoreversion; Check: GIMP2Found
+; Optional GPU BC7 accelerator (DirectXTex). Plugin falls back to CPU bc7enc if absent.
+Source: "..\shared\Bc7Native.dll"; DestDir: "{code:GetGIMP2PluginDir}\gimp2_tex_libs"; Flags: ignoreversion skipifsourcedoesntexist; Check: GIMP2Found
 
 ; ---- GIMP 3.x ----
 ; All files in named subfolder (GIMP 3.x requirement)
@@ -36,6 +38,15 @@ Source: "..\gimp3\gimp3_tex_plugin.py"; DestDir: "{code:GetGIMP3PluginDir}\gimp3
 Source: "..\shared\tex_core.py"; DestDir: "{code:GetGIMP3PluginDir}\gimp3_tex_plugin"; Flags: ignoreversion; Check: GIMP3Found
 Source: "..\shared\dxt_compress.py"; DestDir: "{code:GetGIMP3PluginDir}\gimp3_tex_plugin"; Flags: ignoreversion; Check: GIMP3Found
 Source: "..\shared\libdxtcompress.dll"; DestDir: "{code:GetGIMP3PluginDir}\gimp3_tex_plugin"; Flags: ignoreversion; Check: GIMP3Found
+; Optional GPU BC7 accelerator (DirectXTex). Plugin falls back to CPU bc7enc if absent.
+Source: "..\shared\Bc7Native.dll"; DestDir: "{code:GetGIMP3PluginDir}\gimp3_tex_plugin"; Flags: ignoreversion skipifsourcedoesntexist; Check: GIMP3Found
+
+[InstallDelete]
+; Remove stale compiled bytecode + the old pre-bc7enc DLL so a fresh install
+; can't load outdated cached modules (GIMP 2.x uses Python 2.7 .pyc next to .py).
+Type: files; Name: "{code:GetGIMP2PluginDir}\gimp2_tex_libs\tex_core.pyc"; Check: GIMP2Found
+Type: files; Name: "{code:GetGIMP2PluginDir}\gimp2_tex_libs\dxt_compress.pyc"; Check: GIMP2Found
+Type: files; Name: "{code:GetGIMP2PluginDir}\gimp2_tex_libs\dxt_compress.dll"; Check: GIMP2Found
 
 [Code]
 var

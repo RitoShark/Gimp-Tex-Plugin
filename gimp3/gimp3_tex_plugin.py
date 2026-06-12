@@ -26,7 +26,8 @@ plugin_dir = os.path.dirname(os.path.abspath(__file__))
 if plugin_dir not in sys.path:
     sys.path.insert(0, plugin_dir)
 
-from tex_core import TexFile, tex_to_temp_dds, rgba_to_tex_data, FMT_DXT1, FMT_DXT5, FMT_BGRA8
+from tex_core import (TexFile, tex_to_temp_dds, rgba_to_tex_data,
+                      FMT_DXT1, FMT_DXT5, FMT_BGRA8, FMT_BC5, FMT_BC7, BLOCK_FORMATS)
 from dxt_compress import compress_for_tex
 
 _log_path = os.path.join(os.path.expanduser('~'), 'gimp_tex_plugin_3.log')
@@ -37,8 +38,9 @@ try:
 except Exception:
     pass
 
-FORMAT_NAMES = ["DXT1 (BC1, no alpha)", "DXT5 (BC3, with alpha)", "BGRA8 (uncompressed)"]
-FORMAT_VALUES = [FMT_DXT1, FMT_DXT5, FMT_BGRA8]
+FORMAT_NAMES = ["DXT1 (BC1, no alpha)", "DXT5 (BC3, with alpha)", "BGRA8 (uncompressed)",
+                "BC7 (high quality, alpha)", "BC5 (normal maps, RG)"]
+FORMAT_VALUES = [FMT_DXT1, FMT_DXT5, FMT_BGRA8, FMT_BC7, FMT_BC5]
 METRIC_NAMES = ["Perceptual (recommended)", "Uniform"]
 
 _SETTINGS_FILE = os.path.join(os.path.expanduser('~'), '.gimp_tex_export_settings')
@@ -94,8 +96,13 @@ def load_tex(procedure, run_mode, file, metadata, flags, config, data):
 
         image = None
 
-        # Try DDS plugin first (fast, native decompression)
-        pdb_proc = Gimp.get_pdb().lookup_procedure('file-dds-load')
+        # Try DDS plugin first (fast, native decompression). BC5/BC7 are decoded
+        # by our own native decoders instead, since GIMP's DDS plugin support for
+        # them varies by version; route them straight to the built-in path.
+        if tex.format in (FMT_BC5, FMT_BC7):
+            pdb_proc = None
+        else:
+            pdb_proc = Gimp.get_pdb().lookup_procedure('file-dds-load')
         if pdb_proc is not None:
             _log_msg("Using DDS plugin to load")
             dds_path = tex_to_temp_dds(tex)
@@ -308,12 +315,12 @@ def _do_export(procedure, image, file, fmt, dithering, perceptual, mipmaps):
         w = merged.get_width()
         h = merged.get_height()
 
-        if fmt in (FMT_DXT1, FMT_DXT5) and (w % 4 != 0 or h % 4 != 0):
+        if fmt in BLOCK_FORMATS and (w % 4 != 0 or h % 4 != 0):
             export_image.delete()
             return procedure.new_return_values(
                 Gimp.PDBStatusType.EXECUTION_ERROR,
                 GLib.Error(
-                    "Dimensions must be divisible by 4 for DXT.\n"
+                    "Dimensions must be divisible by 4 for block compression.\n"
                     "Current: {}x{}, resize to: {}x{}".format(
                         w, h, ((w + 3) // 4) * 4, ((h + 3) // 4) * 4)))
 
@@ -363,7 +370,7 @@ class TexPlugin(Gimp.PlugIn):
             procedure.set_menu_label("League of Legends TEX")
             procedure.set_documentation(
                 "Load League of Legends .tex texture files",
-                "Loads DXT1/DXT5/BGRA8 textures via DDS conversion", name)
+                "Loads DXT1/DXT5/BC5/BC7/BGRA8 textures", name)
             procedure.set_extensions("tex")
             procedure.set_attribution("LtMAO Team", "LtMAO Team", "2025")
             return procedure

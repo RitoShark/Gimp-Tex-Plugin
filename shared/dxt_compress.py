@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 dxt_compress.py - DXT compression via native C DLL with pure Python fallback
 
@@ -16,7 +17,7 @@ import sys
 import struct
 import math
 
-from tex_core import FMT_DXT1, FMT_DXT5
+from tex_core import FMT_DXT1, FMT_DXT5, FMT_BC5, FMT_BC7, FMT_BGRA8
 
 # ---------------------------------------------------------------------------
 # Try to load the native DLL
@@ -126,12 +127,85 @@ def _init_dll():
         except AttributeError:
             pass
 
+        # BC5 + BC7 codecs. Optional: only present in DLLs built with the
+        # bc7enc/BC5 support. Older DLLs simply won't expose these symbols.
+        try:
+            # void compress_bc5(const uint8_t *rgba, int w, int h, uint8_t *output)
+            _dll.compress_bc5.argtypes = [
+                ctypes.c_char_p, ctypes.c_int, ctypes.c_int, ctypes.c_char_p]
+            _dll.compress_bc5.restype = None
+            # void decompress_bc5(const uint8_t *input, int w, int h, uint8_t *rgba)
+            _dll.decompress_bc5.argtypes = [
+                ctypes.c_char_p, ctypes.c_int, ctypes.c_int, ctypes.c_char_p]
+            _dll.decompress_bc5.restype = None
+        except AttributeError:
+            pass
+
+        try:
+            # void compress_bc7(const uint8_t *rgba, int w, int h, uint8_t *output,
+            #                   int perceptual, int uber_level)
+            _dll.compress_bc7.argtypes = [
+                ctypes.c_char_p, ctypes.c_int, ctypes.c_int, ctypes.c_char_p,
+                ctypes.c_int, ctypes.c_int]
+            _dll.compress_bc7.restype = None
+            # void decompress_bc7(const uint8_t *input, int w, int h, uint8_t *rgba)
+            _dll.decompress_bc7.argtypes = [
+                ctypes.c_char_p, ctypes.c_int, ctypes.c_int, ctypes.c_char_p]
+            _dll.decompress_bc7.restype = None
+        except AttributeError:
+            pass
+
         _log("DLL loaded successfully - using FAST native compression")
         return _dll
     except Exception as e:
         _log("Failed to load DLL: {}".format(e))
         _dll = None
         return None
+
+
+# ---------------------------------------------------------------------------
+# Optional Windows-only GPU BC7 accelerator (Bc7Native.dll / DirectXTex)
+# ---------------------------------------------------------------------------
+
+_bc7_native = None
+_bc7_native_init_done = False
+
+def _init_bc7_native():
+    """Load the optional Bc7Native.dll (DirectXTex GPU BC7 encoder). Windows only.
+    Returns the loaded library if a GPU compute device is available, else None
+    (callers fall back to the bc7enc CPU encoder in the main library)."""
+    global _bc7_native, _bc7_native_init_done
+    if _bc7_native_init_done:
+        return _bc7_native
+    _bc7_native_init_done = True
+
+    if sys.platform != 'win32':
+        return None
+
+    for d in (os.path.dirname(os.path.abspath(__file__)), os.getcwd()):
+        path = os.path.join(d, 'Bc7Native.dll')
+        if not os.path.exists(path):
+            continue
+        try:
+            dll = ctypes.CDLL(path)
+            # int encode_bc7_gpu(uint8_t *out, const uint8_t *rgba,
+            #                    uint32_t w, uint32_t h, uint32_t flags)
+            dll.encode_bc7_gpu.argtypes = [
+                ctypes.c_char_p, ctypes.c_char_p,
+                ctypes.c_uint, ctypes.c_uint, ctypes.c_uint]
+            dll.encode_bc7_gpu.restype = ctypes.c_int
+            # int gpu_available(void)
+            dll.gpu_available.argtypes = []
+            dll.gpu_available.restype = ctypes.c_int
+            if dll.gpu_available() != 0:
+                _log("Bc7Native.dll loaded - GPU BC7 path available")
+                _bc7_native = dll
+            else:
+                _log("Bc7Native.dll present but no GPU device; using bc7enc CPU")
+        except Exception as e:
+            _log("Bc7Native.dll load failed ({}); using bc7enc CPU".format(e))
+        break
+    return _bc7_native
 
 
 # ---------------------------------------------------------------------------
@@ -145,8 +219,12 @@ def compress_for_tex(dither=True, perceptual=True):
             return compress_bc1(rgba, width, height, dither, perceptual)
         elif fmt == FMT_DXT5:
             return compress_bc3(rgba, width, height, dither, perceptual)
+        elif fmt == FMT_BC5:
+            return compress_bc5(rgba, width, height)
+        elif fmt == FMT_BC7:
+            return compress_bc7(rgba, width, height, perceptual=perceptual)
         else:
-            raise ValueError('DXT compressor does not handle format {}'.format(fmt))
+            raise ValueError('Compressor does not handle format {}'.format(fmt))
     return _compressor
 
 
@@ -163,6 +241,10 @@ def native_decompress(data, width, height, fmt):
         dll.decompress_bc3(bytes(data), width, height, output)
     elif fmt == FMT_BGRA8:
         dll.decompress_bgra8(bytes(data), width, height, output)
+    elif fmt == FMT_BC5 and hasattr(dll, 'decompress_bc5'):
+        dll.decompress_bc5(bytes(data), width, height, output)
+    elif fmt == FMT_BC7 and hasattr(dll, 'decompress_bc7'):
+        dll.decompress_bc7(bytes(data), width, height, output)
     else:
         return None
     return output.raw
@@ -228,6 +310,54 @@ def compress_bc3(rgba, width, height, dither=True, perceptual=True):
         return _dll_compress_bc3(dll, rgba, width, height, dither, perceptual)
     _log("Compressing BC3 {}x{} via Python (slow!)".format(width, height))
     return _py_compress_bc3(rgba, width, height, dither, perceptual)
+
+
+def compress_bc5(rgba, width, height):
+    """Compress RGBA data to BC5 (R,G channels). Native library only (no Python
+    fallback). Used for tangent-space normal maps."""
+    block_w = (width + 3) // 4
+    block_h = (height + 3) // 4
+    out_size = block_w * block_h * 16
+    dll = _init_dll()
+    if dll is not None and hasattr(dll, 'compress_bc5'):
+        _log("Compressing BC5 {}x{} via DLL".format(width, height))
+        output = ctypes.create_string_buffer(out_size)
+        dll.compress_bc5(bytes(rgba), width, height, output)
+        return output.raw
+    raise RuntimeError(
+        'BC5 compression requires the native library (libdxtcompress).')
+
+
+def compress_bc7(rgba, width, height, perceptual=True, uber_level=0):
+    """Compress RGBA data to BC7. Prefers the optional Bc7Native.dll GPU encoder
+    on Windows; otherwise uses the bc7enc CPU encoder in the main library."""
+    block_w = (width + 3) // 4
+    block_h = (height + 3) // 4
+    out_size = block_w * block_h * 16
+
+    # Optional Windows GPU accelerator (DirectXTex via Bc7Native.dll).
+    gpu = _init_bc7_native()
+    if gpu is not None:
+        try:
+            output = ctypes.create_string_buffer(out_size)
+            # flags = 0 -> DirectXTex default compression flags
+            if gpu.encode_bc7_gpu(output, bytes(rgba), width, height, 0) != 0:
+                _log("Compressing BC7 {}x{} via GPU (DirectXTex)".format(width, height))
+                return output.raw
+            _log("GPU BC7 encode failed; falling back to bc7enc CPU")
+        except Exception as e:
+            _log("GPU BC7 error ({}); falling back to bc7enc CPU".format(e))
+
+    # Cross-platform CPU encoder (bc7enc) in the main library.
+    dll = _init_dll()
+    if dll is not None and hasattr(dll, 'compress_bc7'):
+        _log("Compressing BC7 {}x{} via bc7enc CPU".format(width, height))
+        output = ctypes.create_string_buffer(out_size)
+        dll.compress_bc7(bytes(rgba), width, height, output,
+                         int(perceptual), int(uber_level))
+        return output.raw
+    raise RuntimeError(
+        'BC7 compression requires the native library (libdxtcompress with bc7enc).')
 
 
 # ---------------------------------------------------------------------------
