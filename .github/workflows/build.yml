@@ -47,16 +47,18 @@ jobs:
       - name: Install DirectXTex (vcpkg)
         if: runner.os == 'Windows'
         shell: cmd
-        run: vcpkg install directxtex:x64-windows
+        # static-md = DirectXTex as a STATIC lib + dynamic CRT, so it links
+        # straight into Bc7Native.dll (self-contained, no separate DirectXTex.dll
+        # to ship). The default x64-windows triplet would build a DirectXTex DLL.
+        run: vcpkg install directxtex:x64-windows-static-md
 
       - name: Build Bc7Native.dll (Windows GPU BC7)
         if: runner.os == 'Windows'
         working-directory: shared
         shell: cmd
-        # /MD is required: vcpkg's DirectXTex (x64-windows) uses the dynamic CRT,
-        # and cl defaults to /MT — a mismatch causes LNK2038. ole32 resolves the
-        # WIC factory pulled in by DirectXTexUtil.
-        run: cl /O2 /MD /EHsc /LD /I"%VCPKG_INSTALLATION_ROOT%\installed\x64-windows\include" Bc7Native.cpp /Fe:Bc7Native.dll /link "%VCPKG_INSTALLATION_ROOT%\installed\x64-windows\lib\DirectXTex.lib" d3d11.lib dxgi.lib ole32.lib uuid.lib
+        # /MD matches the static-md CRT. ole32/uuid resolve the WIC factory
+        # pulled in by DirectXTexUtil.
+        run: cl /O2 /MD /EHsc /LD /I"%VCPKG_INSTALLATION_ROOT%\installed\x64-windows-static-md\include" Bc7Native.cpp /Fe:Bc7Native.dll /link "%VCPKG_INSTALLATION_ROOT%\installed\x64-windows-static-md\lib\DirectXTex.lib" d3d11.lib dxgi.lib ole32.lib uuid.lib
 
       - name: Upload Bc7Native.dll
         if: runner.os == 'Windows'
